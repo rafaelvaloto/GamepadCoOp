@@ -27,8 +27,9 @@
 5.  In the editor, go to `Edit > Plugins`, search for `GamepadCoOp`, and ensure it is enabled.
 
 ## 🎬 Demo
+[link](https://github.com/rafaelvaloto/GamepadCoOp/blob/main/Images/AnimationCoOp.gif)
 
-![Demo Gif](Images/AnimationCoOp.gif)
+![Demo Gif](https://github.com/rafaelvaloto/GamepadCoOp/blob/main/Images/AnimationCoOp.gif)
 
 ## 💡 How to Use
 

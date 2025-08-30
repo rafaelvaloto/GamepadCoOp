@@ -83,6 +83,7 @@ Agora, você pode usar o manager para remapear os controles:
     const FPlatformUserId Player1_UserId = CoopManager->CoOpPlatformUserId(1);
 
     // Encontre qual dispositivo de entrada cada jogador está usando
+
     const FInputDeviceId Player0_DeviceId = CoopManager->GetPrimaryGamepadForUser(Player0_UserId);
     const FInputDeviceId Player1_DeviceId = CoopManager->GetPrimaryGamepadForUser(Player1_UserId);
 
