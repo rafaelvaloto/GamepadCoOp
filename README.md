@@ -28,9 +28,7 @@
 
 ## 🎬 Demo
 
-
-[![Demo Gif](https://github.com/rafaelvaloto/GamepadCoOp/blob/main/Images/AnimationCoOp_thumbnail.png)](https://github.com/rafaelvaloto/GamepadCoOp/blob/main/Images/AnimationCoOp.gif)
-
+![Demo Gif](Images/AnimationCoOp.gif)
 
 ## 💡 How to Use
 
