@@ -19,6 +19,17 @@ class GAMEPADCOOP_API UGamepadCoOpManager : public UGameInstanceSubsystem
 	GENERATED_BODY()
 
 public:
+	/**
+	 * Retrieves the UGamepadCoOpManager subsystem associated with the given world context.
+	 *
+	 * This static function is used to obtain the instance of the GamepadCoOpManager subsystem
+	 * from the specified world context object. If the world context is valid and
+	 * the GameInstance contains the UGamepadCoOpManager subsystem, it will return the subsystem instance.
+	 * If the world context object is invalid or the subsystem is not available, it will return nullptr.
+	 *
+	 * @param WorldContextObject The object providing the context for the world in which to retrieve the manager.
+	 * @return A pointer to the UGamepadCoOpManager subsystem if found; otherwise, nullptr.
+	 */
 	UFUNCTION(BlueprintPure, Category = "GamepadCoOp", meta = (WorldContext = "WorldContextObject"))
 	static UGamepadCoOpManager* Get(const UObject* WorldContextObject);
 	
@@ -59,9 +70,7 @@ protected:
 private:
 	void HandleDeviceConnected(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId, FInputDeviceId DeviceId);
 
-	void HandleDeviceDisconnected(const FInputDeviceId DeviceId);
-
-    void HandleDeviceUserChanged(const FInputDeviceId DeviceId, const FPlatformUserId NewUser, const FPlatformUserId OldUser);
+	void HandleDeviceDevicePairing(const FInputDeviceId DeviceId, const FPlatformUserId NewUserId, const FPlatformUserId OldUserId);
 
 	void RegisterGamepad(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId, FInputDeviceId DeviceId);
 

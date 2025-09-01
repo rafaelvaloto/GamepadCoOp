@@ -14,13 +14,20 @@ void UGamepadCoOpManager::Initialize(FSubsystemCollectionBase& Collection)
 
 	IPlatformInputDeviceMapper& Mapper = IPlatformInputDeviceMapper::Get();
 	Mapper.GetOnInputDeviceConnectionChange().AddUObject(this, &UGamepadCoOpManager::HandleDeviceConnected);
+	Mapper.GetOnInputDevicePairingChange().AddUObject(this, &UGamepadCoOpManager::HandleDeviceDevicePairing);
 
 	TArray<FInputDeviceId> AllDeviceIds;
+	AllDeviceIds.Reset();
+
 	Mapper.GetAllInputDevices(AllDeviceIds);
 	for (const FInputDeviceId& DeviceId : AllDeviceIds)
 	{
-		const FPlatformUserId UserId = Mapper.GetUserForInputDevice(DeviceId);
-		HandleDeviceConnected(EInputDeviceConnectionState::Connected, UserId, DeviceId);
+		if (FPlatformUserId UserIsPaired = Mapper.GetUserForInputDevice(DeviceId); UserIsPaired.IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("GamepadCoOp: User %d is already paired with a gamepad."),
+			       UserIsPaired.GetInternalId());
+			Mapper.Internal_MapInputDeviceToUser(DeviceId, UserIsPaired, EInputDeviceConnectionState::Connected);
+		}
 	}
 }
 
@@ -28,13 +35,14 @@ void UGamepadCoOpManager::Deinitialize()
 {
 	IPlatformInputDeviceMapper& Mapper = IPlatformInputDeviceMapper::Get();
 	Mapper.GetOnInputDeviceConnectionChange().RemoveAll(this);
-	
+
 	Super::Deinitialize();
 }
 
 UGamepadCoOpManager* UGamepadCoOpManager::Get(const UObject* WorldContextObject)
 {
-	if (const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, EGetWorldErrorMode::LogAndReturnNull))
+	if (const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject,
+	                                                             EGetWorldErrorMode::LogAndReturnNull))
 	{
 		if (const UGameInstance* GameInstance = World->GetGameInstance())
 		{
@@ -44,59 +52,64 @@ UGamepadCoOpManager* UGamepadCoOpManager::Get(const UObject* WorldContextObject)
 	return nullptr;
 }
 
+void UGamepadCoOpManager::HandleDeviceConnected(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId,
+                                                FInputDeviceId DeviceId)
+{
+	RegisterGamepad(ConnectionState, UserId, DeviceId);
+}
+
+void UGamepadCoOpManager::HandleDeviceDevicePairing(const FInputDeviceId DeviceId, const FPlatformUserId NewUserId,
+                                                    const FPlatformUserId OldUserId)
+{
+	// const FGamepadCoOp* Gamepad = Gamepads.Find(DeviceId);
+	// if (!Gamepad)
+	// {
+	// 	UE_LOG(LogTemp, Warning, TEXT("RemapGamepadToUser: Gamepad not found: %d"), DeviceId.GetId());
+	// 	return;
+	// }
+
+	
+}
+
 FPlatformUserId UGamepadCoOpManager::CoOpPlatformUserId(int32 LocalPlayerControllerId) const
 {
 	return FPlatformUserId::CreateFromInternalId(LocalPlayerControllerId);
 }
 
-void UGamepadCoOpManager::HandleDeviceConnected(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId, FInputDeviceId DeviceId)
-{
-	RegisterGamepad(ConnectionState, UserId, DeviceId);
-}
-
-void UGamepadCoOpManager::HandleDeviceDisconnected(const FInputDeviceId DeviceId)
-{
-	UnregisterGamepad(DeviceId);
-}
-
-void UGamepadCoOpManager::HandleDeviceUserChanged(const FInputDeviceId DeviceId, const FPlatformUserId NewUser, const FPlatformUserId OldUser)
-{
-    if (FGamepadCoOp* Gamepad = Gamepads.Find(DeviceId))
-    {
-        Gamepad->PlatformUserId = NewUser;
-        OnGamepadUserChanged.Broadcast(*Gamepad, NewUser, OldUser);
-    }
-}
-
-
-void UGamepadCoOpManager::RegisterGamepad(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId, FInputDeviceId DeviceId)
+void UGamepadCoOpManager::RegisterGamepad(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId,
+                                          FInputDeviceId DeviceId)
 {
 	if (Gamepads.Contains(DeviceId))
 	{
 		return;
 	}
-	
+
 	IPlatformInputDeviceMapper& Mapper = IPlatformInputDeviceMapper::Get();
 	if (!UserId.IsValid())
 	{
 		return;
 	}
-	
+
 	FGamepadCoOp NewGamepad;
 	NewGamepad.InputDeviceId = DeviceId;
 	NewGamepad.PlatformUserId = UserId;
-	NewGamepad.ConnectedState = EInputDeviceConnectionState::Connected;
+	NewGamepad.ConnectedState = ConnectionState;
 
-	Gamepads.Add(DeviceId, NewGamepad);
-	OnGamepadConnected.Broadcast(NewGamepad);
+	if (ConnectionState == EInputDeviceConnectionState::Connected)
+	{
+		Gamepads.Add(DeviceId, NewGamepad);
+		OnGamepadConnected.Broadcast(NewGamepad);
+	}
+
+	if (ConnectionState == EInputDeviceConnectionState::Disconnected)
+	{
+		UnregisterGamepad(DeviceId);
+	}
 }
 
 void UGamepadCoOpManager::UnregisterGamepad(const FInputDeviceId DeviceId)
 {
-	if (FGamepadCoOp RemovedGamepad; Gamepads.RemoveAndCopyValue(DeviceId, RemovedGamepad))
-	{
-		OnGamepadDisconnected.Broadcast(RemovedGamepad);
-	}
+	OnGamepadDisconnected.Broadcast(Gamepads.FindRef(DeviceId));
 }
 
 bool UGamepadCoOpManager::GetGamepad(const FInputDeviceId& DeviceId, FGamepadCoOp& OutGamepad) const
@@ -148,20 +161,19 @@ bool UGamepadCoOpManager::RemapGamepadToUser(const FInputDeviceId& DeviceId, con
 	const FGamepadCoOp* Gamepad = Gamepads.Find(DeviceId);
 	if (!Gamepad)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("RemapGamepadToUser: Tentativa de remapear um gamepad desconhecido com DeviceId: %d"), DeviceId.GetId());
+		UE_LOG(LogTemp, Warning, TEXT("RemapGamepadToUser: Gamepad not found: %d"), DeviceId.GetId());
 		return false;
 	}
 
 
 	const FPlatformUserId OldUserId = Gamepad->PlatformUserId;
-	
 	if (OldUserId == NewUserId)
 	{
 		return true;
 	}
 
+	Gamepads[DeviceId].PlatformUserId = NewUserId;
 	IPlatformInputDeviceMapper::Get().Internal_ChangeInputDeviceUserMapping(DeviceId, NewUserId, OldUserId);
 	OnGamepadUserChanged.Broadcast(*Gamepad, NewUserId, OldUserId);
-	Gamepads[DeviceId].PlatformUserId = NewUserId;
 	return true;
 }
