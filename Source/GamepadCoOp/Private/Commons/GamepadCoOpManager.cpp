@@ -14,7 +14,7 @@ void UGamepadCoOpManager::Initialize(FSubsystemCollectionBase& Collection)
 
 	IPlatformInputDeviceMapper& Mapper = IPlatformInputDeviceMapper::Get();
 	Mapper.GetOnInputDeviceConnectionChange().AddUObject(this, &UGamepadCoOpManager::HandleDeviceConnected);
-	Mapper.GetOnInputDevicePairingChange().AddUObject(this, &UGamepadCoOpManager::HandleDeviceDevicePairing);
+	// Mapper.GetOnInputDevicePairingChange().AddUObject(this, &UGamepadCoOpManager::HandleDeviceDevicePairing);
 
 	TArray<FInputDeviceId> AllDeviceIds;
 	AllDeviceIds.Reset();
@@ -22,6 +22,11 @@ void UGamepadCoOpManager::Initialize(FSubsystemCollectionBase& Collection)
 	Mapper.GetAllInputDevices(AllDeviceIds);
 	for (const FInputDeviceId& DeviceId : AllDeviceIds)
 	{
+		if (GetHardwareDeviceIdentifier(DeviceId).HardwareDeviceIdentifier == TEXT("KBM"))
+		{
+			continue;
+		}
+		
 		if (FPlatformUserId UserIsPaired = Mapper.GetUserForInputDevice(DeviceId); UserIsPaired.IsValid())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("GamepadCoOp: User %d is already paired with a gamepad."),
@@ -67,8 +72,6 @@ void UGamepadCoOpManager::HandleDeviceDevicePairing(const FInputDeviceId DeviceI
 	// 	UE_LOG(LogTemp, Warning, TEXT("RemapGamepadToUser: Gamepad not found: %d"), DeviceId.GetId());
 	// 	return;
 	// }
-
-	
 }
 
 FPlatformUserId UGamepadCoOpManager::CoOpPlatformUserId(int32 LocalPlayerControllerId) const
@@ -85,11 +88,6 @@ void UGamepadCoOpManager::RegisterGamepad(EInputDeviceConnectionState Connection
 	}
 
 	IPlatformInputDeviceMapper& Mapper = IPlatformInputDeviceMapper::Get();
-	if (!UserId.IsValid())
-	{
-		return;
-	}
-
 	FGamepadCoOp NewGamepad;
 	NewGamepad.InputDeviceId = DeviceId;
 	NewGamepad.PlatformUserId = UserId;
