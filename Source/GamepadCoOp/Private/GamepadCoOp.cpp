@@ -4,8 +4,6 @@
 
 #include "GamepadCoOp.h"
 
-#include "Commons/GamepadCoOpManager.h"
-
 #define LOCTEXT_NAMESPACE "FGamepadCoOpModule"
 
 void FGamepadCoOpModule::StartupModule()

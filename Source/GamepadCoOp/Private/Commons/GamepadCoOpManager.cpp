@@ -3,6 +3,8 @@
 // Planned Release Year: 2025
 
 #include "Commons/GamepadCoOpManager.h"
+#include "Engine/Engine.h" // Add this line for GEngine
+#include "Engine/World.h" 
 #include "Engine/GameInstance.h"
 #include "GameFramework/InputDeviceSubsystem.h"
 #include "GenericPlatform/GenericApplicationMessageHandler.h"
@@ -14,7 +16,6 @@ void UGamepadCoOpManager::Initialize(FSubsystemCollectionBase& Collection)
 
 	IPlatformInputDeviceMapper& Mapper = IPlatformInputDeviceMapper::Get();
 	Mapper.GetOnInputDeviceConnectionChange().AddUObject(this, &UGamepadCoOpManager::HandleDeviceConnected);
-	// Mapper.GetOnInputDevicePairingChange().AddUObject(this, &UGamepadCoOpManager::HandleDeviceDevicePairing);
 
 	TArray<FInputDeviceId> AllDeviceIds;
 	AllDeviceIds.Reset();
@@ -22,15 +23,13 @@ void UGamepadCoOpManager::Initialize(FSubsystemCollectionBase& Collection)
 	Mapper.GetAllInputDevices(AllDeviceIds);
 	for (const FInputDeviceId& DeviceId : AllDeviceIds)
 	{
-		if (GetHardwareDeviceIdentifier(DeviceId).HardwareDeviceIdentifier == TEXT("KBM"))
-		{
-			continue;
-		}
-		
+		// if (GetHardwareDeviceIdentifier(DeviceId).HardwareDeviceIdentifier == TEXT("KBM"))
+		// {
+		// 	continue;
+		// }
+		//
 		if (FPlatformUserId UserIsPaired = Mapper.GetUserForInputDevice(DeviceId); UserIsPaired.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("GamepadCoOp: User %d is already paired with a gamepad."),
-			       UserIsPaired.GetInternalId());
 			Mapper.Internal_MapInputDeviceToUser(DeviceId, UserIsPaired, EInputDeviceConnectionState::Connected);
 		}
 	}
@@ -63,17 +62,6 @@ void UGamepadCoOpManager::HandleDeviceConnected(EInputDeviceConnectionState Conn
 	RegisterGamepad(ConnectionState, UserId, DeviceId);
 }
 
-void UGamepadCoOpManager::HandleDeviceDevicePairing(const FInputDeviceId DeviceId, const FPlatformUserId NewUserId,
-                                                    const FPlatformUserId OldUserId)
-{
-	// const FGamepadCoOp* Gamepad = Gamepads.Find(DeviceId);
-	// if (!Gamepad)
-	// {
-	// 	UE_LOG(LogTemp, Warning, TEXT("RemapGamepadToUser: Gamepad not found: %d"), DeviceId.GetId());
-	// 	return;
-	// }
-}
-
 FPlatformUserId UGamepadCoOpManager::CoOpPlatformUserId(int32 LocalPlayerControllerId) const
 {
 	return FPlatformUserId::CreateFromInternalId(LocalPlayerControllerId);
@@ -86,8 +74,7 @@ void UGamepadCoOpManager::RegisterGamepad(EInputDeviceConnectionState Connection
 	{
 		return;
 	}
-
-	IPlatformInputDeviceMapper& Mapper = IPlatformInputDeviceMapper::Get();
+	
 	FGamepadCoOp NewGamepad;
 	NewGamepad.InputDeviceId = DeviceId;
 	NewGamepad.PlatformUserId = UserId;
@@ -102,6 +89,7 @@ void UGamepadCoOpManager::RegisterGamepad(EInputDeviceConnectionState Connection
 	if (ConnectionState == EInputDeviceConnectionState::Disconnected)
 	{
 		UnregisterGamepad(DeviceId);
+		OnGamepadDisconnected.Broadcast(NewGamepad);
 	}
 }
 

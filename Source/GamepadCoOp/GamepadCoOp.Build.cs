@@ -25,12 +25,5 @@ public class GamepadCoOp : ModuleRules
 			"Slate",
 			"SlateCore"
 		});
-
-		bEnableExceptions = false;
-		if (Target.Platform == UnrealTargetPlatform.Win64)
-		{
-			PublicSystemLibraries.Add("hid.lib");
-		}
-
 	}
 }

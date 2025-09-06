@@ -5,6 +5,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Engine/Engine.h" // Add this line for GEngine
+#include "Engine/World.h" 
 #include "GameFramework/InputSettings.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Structs/FGamepadCoOp.h"
@@ -69,8 +71,6 @@ protected:
 
 private:
 	void HandleDeviceConnected(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId, FInputDeviceId DeviceId);
-
-	void HandleDeviceDevicePairing(const FInputDeviceId DeviceId, const FPlatformUserId NewUserId, const FPlatformUserId OldUserId);
 
 	void RegisterGamepad(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId, FInputDeviceId DeviceId);
 
