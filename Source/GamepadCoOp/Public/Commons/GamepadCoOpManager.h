@@ -70,11 +70,15 @@ protected:
 	virtual void Deinitialize() override;
 
 private:
+	UFUNCTION()
 	void HandleDeviceConnected(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId, FInputDeviceId DeviceId);
 
+	UFUNCTION()
 	void RegisterGamepad(EInputDeviceConnectionState ConnectionState, FPlatformUserId UserId, FInputDeviceId DeviceId);
 
+	UFUNCTION()
 	void UnregisterGamepad(const FInputDeviceId DeviceId);
-	
-	TMap<FInputDeviceId, FGamepadCoOp> Gamepads;
+
+	UPROPERTY()
+	TMap<int32, FGamepadCoOp> Gamepads;
 };
